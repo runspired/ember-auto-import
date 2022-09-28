@@ -14,6 +14,7 @@ import {
   TemplateImportSyntax,
 } from './analyzer-syntax';
 import { Memoize } from 'typescript-memoize';
+import RuntimeConfigLoader from './runtime-config-loader';
 
 makeDebug.formatters.m = (modules: Import[]) => {
   return JSON.stringify(
@@ -93,6 +94,13 @@ export default class Analyzer extends Funnel {
 
   async build(...args: unknown[]) {
     await super.build(...args);
+
+    if (this.modules && this.modules.length) {
+      if (new RuntimeConfigLoader().skipAnalyzerOnRebuild) {
+        return;
+      }
+    }
+
     for (let [operation, relativePath] of this.getPatchset()) {
       switch (operation) {
         case 'unlink':

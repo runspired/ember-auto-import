@@ -8,7 +8,7 @@ import type {
 } from 'webpack';
 import { join, dirname } from 'path';
 import { mergeWith, flatten, zip } from 'lodash';
-import { writeFileSync, realpathSync } from 'fs';
+import { existsSync, writeFileSync, realpathSync } from 'fs';
 import { compile, registerHelper } from 'handlebars';
 import jsStringEscape from 'js-string-escape';
 import { BundleDependencies, ResolvedTemplateImport } from './splitter';
@@ -20,8 +20,9 @@ import { Options } from './package';
 import { PackageCache } from '@embroider/shared-internals';
 import { Memoize } from 'typescript-memoize';
 import makeDebug from 'debug';
-import { ensureDirSync, symlinkSync, existsSync } from 'fs-extra';
+import { ensureDirSync, symlinkSync } from 'fs-extra';
 import MiniCssExtractPlugin from 'mini-css-extract-plugin';
+import RuntimeConfigLoader from './runtime-config-loader';
 
 const debug = makeDebug('ember-auto-import:webpack');
 
@@ -322,6 +323,11 @@ export default class WebpackBundler extends Plugin implements Bundler {
   }
 
   async build(): Promise<void> {
+    if (this.lastBuildResult) {
+      if (new RuntimeConfigLoader().skipWebpackOnRebuild) {
+        return;
+      }
+    }
     let bundleDeps = await this.opts.splitter.deps();
 
     for (let [bundle, deps] of bundleDeps.entries()) {
